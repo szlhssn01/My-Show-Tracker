@@ -70,8 +70,8 @@ window.addEventListener("error", function (e) {
     refresh: function (size) { return svgIcon([h("polyline", { key: 1, points: "23 4 23 10 17 10" }), h("polyline", { key: 2, points: "1 20 1 14 7 14" }), h("path", { key: 3, d: "M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" })], size); },
     chevron: function (size) { return svgIcon([h("polyline", { key: 1, points: "6 9 12 15 18 9" })], size || 13); },
     check: function (size) { return svgIcon([h("polyline", { key: 1, points: "20 6 9 17 4 12" })], size || 13); },
-    download: function (size) { return svgIcon([h("path", { key: 1, d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), h("polyline", { key: 2, points: "7 10 12 15 17 10" }), h("line", { key: 3, x1: 12, y1: 15, x2: 12, y2: 3 })], size); },
-    upload: function (size) { return svgIcon([h("path", { key: 1, d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), h("polyline", { key: 2, points: "17 8 12 3 7 8" }), h("line", { key: 3, x1: 12, y1: 3, x2: 12, y2: 15 })], size); }
+    download: function (size) { return svgIcon([h("path", { key: 1, d: "M12 3v12" }), h("polyline", { key: 2, points: "7 11 12 16 17 11" }), h("path", { key: 3, d: "M5 20h14" })], size); },
+    upload: function (size) { return svgIcon([h("path", { key: 1, d: "M12 21V9" }), h("polyline", { key: 2, points: "7 13 12 8 17 13" }), h("path", { key: 3, d: "M5 20h14" })], size); }
   };
 
   function deriveAutoStatus(show, watchedIds, eps) {
@@ -375,7 +375,7 @@ window.addEventListener("error", function (e) {
       h("button", {
         onClick: refreshAll, disabled: refreshing || shows.length === 0, style: styles.iconButton, title: "Check for new episodes"
       }, h("span", { style: { display: "flex", animation: refreshing ? "spin 1s linear infinite" : "none" } }, Icons.refresh())),
-      h("button", { onClick: function () { setSearchOpen(true); }, style: styles.addButton }, Icons.plus(), "Add Show")
+      h("button", { onClick: function () { setSearchOpen(true); }, style: styles.addButton }, Icons.plus(), "Add show")
     );
 
     var errorBanner = error ? h("div", { style: styles.errorBanner }, error,
@@ -585,12 +585,12 @@ window.addEventListener("error", function (e) {
     logoMark: { width: 32, height: 32, borderRadius: 8, background: "#4FD1C5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
     logoTitle: { fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, letterSpacing: "0.12em", lineHeight: 1 },
     logoSub: { fontSize: 11, color: "#8B8FA3", marginTop: 3 },
-    headerRight: { display: "flex", alignItems: "center", gap: 10, flex: 1 },
+    headerRight: { display: "flex", alignItems: "center", gap: 10 },
     onAirBadge: { display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.06em", color: "#FF4B3E", border: "1px solid rgba(255,75,62,0.4)", borderRadius: 20, padding: "5px 10px", background: "rgba(255,75,62,0.08)" },
     onAirDot: { width: 6, height: 6, borderRadius: "50%", background: "#FF4B3E", display: "inline-block", animation: "pulse 1s ease-in-out infinite alternate" },
     iconButton: { width: 34, height: 34, borderRadius: 8, border: "1px solid #2A2E3A", background: "#1B1E27", color: "#8B8FA3", display: "flex", alignItems: "center", justifyContent: "center" },
     iconButtonPlain: { background: "none", border: "none", color: "#8B8FA3", display: "flex" },
-    addButton: { display: "flex", alignItems: "center", gap: 6, background: "#EDEAE2", color: "#14161C", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 600, marginLeft: "auto" },
+    addButton: { display: "flex", alignItems: "center", gap: 6, background: "#EDEAE2", color: "#14161C", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 600 },
     errorBanner: { margin: "0 24px 12px", background: "rgba(255,75,62,0.1)", border: "1px solid rgba(255,75,62,0.35)", color: "#FF9A90", borderRadius: 8, padding: "10px 14px", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, position: "relative", zIndex: 1 },
     errorDismiss: { background: "none", border: "none", color: "#FF9A90", display: "flex" },
     dial: { display: "flex", gap: 8, padding: "0 24px 20px", overflowX: "auto", position: "relative", zIndex: 1 },
