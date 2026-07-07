@@ -138,17 +138,23 @@ window.addEventListener("error", function (e) {
 
     useEffect(function () {
       try {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) setShows(JSON.parse(raw));
+        var rawShows = localStorage.getItem(STORAGE_KEY);
+        if (rawShows) setShows(JSON.parse(rawShows));
+        
+        var rawCache = localStorage.getItem(STORAGE_KEY + "-cache");
+        if (rawCache) setEpisodesCache(JSON.parse(rawCache));
       } catch (e) {}
       setLoaded(true);
     }, []);
 
     useEffect(function () {
       if (!loaded) return;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(shows)); }
+      try { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shows)); 
+        localStorage.setItem(STORAGE_KEY + "-cache", JSON.stringify(episodesCache));
+      }
       catch (e) { setError("Couldn't save your changes locally."); }
-    }, [shows, loaded]);
+    }, [shows, episodesCache, loaded]);
 
     useEffect(function () {
       if (!debouncedQuery.trim()) { setSearchResults([]); return; }
@@ -216,7 +222,7 @@ window.addEventListener("error", function (e) {
 
     function exportData() {
       try {
-        var payload = { app: "Queue", exportedAt: new Date().toISOString(), shows: shows };
+        var payload = { app: "Queue", exportedAt: new Date().toISOString(), shows: shows, episodesCache: episodesCache };
         var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
@@ -244,14 +250,17 @@ window.addEventListener("error", function (e) {
       reader.onload = function (evt) {
         try {
           var parsed = JSON.parse(evt.target.result);
-          var incoming = Array.isArray(parsed) ? parsed : parsed.shows;
-          if (!Array.isArray(incoming)) throw new Error("bad format");
+          var incomingShows = Array.isArray(parsed) ? parsed : parsed.shows;
+          var incomingCache = parsed.episodesCache || {};
+          
+          if (!Array.isArray(incomingShows)) throw new Error("bad format");
           var proceed = shows.length === 0 || window.confirm(
-            "This will replace your current list (" + shows.length + " shows) with the " + incoming.length + " shows from this backup. Continue?"
+            "This will replace your current list (" + shows.length + " shows) with the " + incomingShows.length + " shows from this backup. Continue?"
           );
           if (!proceed) return;
-          setShows(incoming);
-          setEpisodesCache({});
+          
+          setShows(incomingShows);
+          setEpisodesCache(incomingCache);
           setError(null);
         } catch (err) {
           setError("That file doesn't look like a valid Queue backup.");
