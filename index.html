@@ -546,7 +546,7 @@ window.addEventListener("error", function (e) {
                 h("button", {
                   style: styles.seasonMarkAll,
                   onClick: function () { markEpisodesWatched(detailShow.id, aired.map(function (e) { return e.id; }), watchedCount < aired.length); }
-                }, watchedCount < aired.length ? "Mark all seen" : "Unmark all")
+                }, watchedCount < aired.length ? "Mark all" : "Unmark all")
               )
             ),
             rows
@@ -569,7 +569,7 @@ window.addEventListener("error", function (e) {
               eps ? h("button", {
                 style: Object.assign({}, styles.seasonMarkAll, { marginTop: 8 }),
                 onClick: function () { markEpisodesWatched(detailShow.id, allAiredIds, !isAllWatched); }
-              }, isAllWatched ? "Unmark everything aired" : "Mark everything aired as watched") : null
+              }, isAllWatched ? "Unmark everything aired" : "Mark everything aired") : null
             ),
             h("button", { onClick: closeDetail, style: styles.iconButtonPlain }, Icons.x(18))
           ),
