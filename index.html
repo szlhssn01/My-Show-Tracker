@@ -132,8 +132,8 @@ window.addEventListener("error", function (e) {
     var episodesCache = episodesCacheState[0], setEpisodesCache = episodesCacheState[1];
     var episodesLoadingState = useState(false);
     var episodesLoading = episodesLoadingState[0], setEpisodesLoading = episodesLoadingState[1];
-    var collapsedSeasonsState = useState({});
-    var collapsedSeasons = collapsedSeasonsState[0], setCollapsedSeasons = collapsedSeasonsState[1];
+    var expandedSeasonsState = useState({});
+    var expandedSeasons = expandedSeasonsState[0], setExpandedSeasons = expandedSeasonsState[1];
     var fileInputRef = useRef(null);
 
     useEffect(function () {
@@ -278,7 +278,7 @@ window.addEventListener("error", function (e) {
 
     function openDetail(show) {
       setDetailShowId(show.id);
-      setCollapsedSeasons({});
+      setExpandedSeasons({});
       if (episodesCache[show.tvmazeId]) return;
       setEpisodesLoading(true);
       fetch(TVMAZE + "/shows/" + show.tvmazeId + "/episodes")
@@ -331,8 +331,8 @@ window.addEventListener("error", function (e) {
       });
     }
 
-    function toggleSeasonCollapsed(seasonNum) {
-      setCollapsedSeasons(function (prev) {
+    function toggleSeasonExpanded(seasonNum) {
+      setExpandedSeasons(function (prev) {
         var next = Object.assign({}, prev);
         next[seasonNum] = !next[seasonNum];
         return next;
@@ -521,8 +521,8 @@ window.addEventListener("error", function (e) {
           var seasonEps = bySeasonMap[sn];
           var aired = seasonEps.filter(function (e) { return e.airdate && e.airdate <= today; });
           var watchedCount = aired.filter(function (e) { return watchedSet.indexOf(e.id) !== -1; }).length;
-          var isCollapsed = !!collapsedSeasons[sn];
-          var rows = isCollapsed ? null : seasonEps.map(function (e) {
+          var isExpanded = !!expandedSeasons[sn];
+          var rows = isExpanded ? seasonEps.map(function (e) {
             var isWatched = watchedSet.indexOf(e.id) !== -1;
             var hasAired = e.airdate && e.airdate <= today;
             return h("label", { key: e.id, style: Object.assign({}, styles.episodeRow, { opacity: hasAired ? 1 : 0.45 }) },
@@ -534,11 +534,11 @@ window.addEventListener("error", function (e) {
               h("span", { style: styles.episodeName }, e.name || "Untitled"),
               h("span", { style: styles.episodeDate }, hasAired ? fmtDate(e.airdate) : (e.airdate ? fmtDate(e.airdate) : "TBA"))
             );
-          });
+          }) : null;
           return h("div", { key: sn },
             h("div", { style: styles.seasonHeader },
-              h("div", { style: styles.seasonTitle, onClick: function () { toggleSeasonCollapsed(sn); } },
-                h("span", { style: { display: "flex", transform: isCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.15s" } }, Icons.chevron()),
+              h("div", { style: styles.seasonTitle, onClick: function () { toggleSeasonExpanded(sn); } },
+                h("span", { style: { display: "flex", transform: isExpanded ? "none" : "rotate(-90deg)", transition: "transform 0.15s" } }, Icons.chevron()),
                 "Season " + sn
               ),
               h("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
@@ -554,7 +554,10 @@ window.addEventListener("error", function (e) {
         });
       }
 
-      var allAiredIds = eps ? eps.filter(function (e) { return e.airdate && e.airdate <= today; }).map(function (e) { return e.id; }) : [];
+      var allAired = eps ? eps.filter(function (e) { return e.airdate && e.airdate <= today; }) : [];
+      var allAiredIds = allAired.map(function (e) { return e.id; });
+      var allWatchedCount = allAired.filter(function (e) { return watchedSet.indexOf(e.id) !== -1; }).length;
+      var isAllWatched = allAired.length > 0 && allWatchedCount === allAired.length;
 
       detailModal = h("div", { style: styles.detailBackdrop, onClick: closeDetail },
         h("div", { style: styles.detailPanel, onClick: function (e) { e.stopPropagation(); } },
@@ -565,8 +568,8 @@ window.addEventListener("error", function (e) {
               h("div", { style: styles.detailSub }, detailShow.network),
               eps ? h("button", {
                 style: Object.assign({}, styles.seasonMarkAll, { marginTop: 8 }),
-                onClick: function () { markEpisodesWatched(detailShow.id, allAiredIds, true); }
-              }, "Mark everything aired as watched") : null
+                onClick: function () { markEpisodesWatched(detailShow.id, allAiredIds, !isAllWatched); }
+              }, isAllWatched ? "Unmark everything aired" : "Mark everything aired as watched") : null
             ),
             h("button", { onClick: closeDetail, style: styles.iconButtonPlain }, Icons.x(18))
           ),
