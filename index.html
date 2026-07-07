@@ -44,6 +44,7 @@ window.addEventListener("error", function (e) {
   var h = React.createElement;
   var useState = React.useState;
   var useEffect = React.useEffect;
+  var useRef = React.useRef;
 
   var CATEGORIES = [
     { key: "watching", label: "Watching", num: "01", color: "#F2C94C" },
@@ -68,7 +69,9 @@ window.addEventListener("error", function (e) {
     tv: function (size) { return svgIcon([h("rect", { key: 1, x: 2, y: 7, width: 20, height: 14, rx: 2 }), h("polyline", { key: 2, points: "17 2 12 7 7 2" })], size); },
     refresh: function (size) { return svgIcon([h("polyline", { key: 1, points: "23 4 23 10 17 10" }), h("polyline", { key: 2, points: "1 20 1 14 7 14" }), h("path", { key: 3, d: "M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" })], size); },
     chevron: function (size) { return svgIcon([h("polyline", { key: 1, points: "6 9 12 15 18 9" })], size || 13); },
-    check: function (size) { return svgIcon([h("polyline", { key: 1, points: "20 6 9 17 4 12" })], size || 13); }
+    check: function (size) { return svgIcon([h("polyline", { key: 1, points: "20 6 9 17 4 12" })], size || 13); },
+    download: function (size) { return svgIcon([h("path", { key: 1, d: "M12 3v12" }), h("polyline", { key: 2, points: "7 11 12 16 17 11" }), h("path", { key: 3, d: "M5 20h14" })], size); },
+    upload: function (size) { return svgIcon([h("path", { key: 1, d: "M12 21V9" }), h("polyline", { key: 2, points: "7 13 12 8 17 13" }), h("path", { key: 3, d: "M5 20h14" })], size); }
   };
 
   function deriveAutoStatus(show, watchedIds, eps) {
@@ -131,6 +134,7 @@ window.addEventListener("error", function (e) {
     var episodesLoading = episodesLoadingState[0], setEpisodesLoading = episodesLoadingState[1];
     var collapsedSeasonsState = useState({});
     var collapsedSeasons = collapsedSeasonsState[0], setCollapsedSeasons = collapsedSeasonsState[1];
+    var fileInputRef = useRef(null);
 
     useEffect(function () {
       try {
@@ -208,6 +212,53 @@ window.addEventListener("error", function (e) {
           });
         })
         .catch(function () {});
+    }
+
+    function exportData() {
+      try {
+        var payload = { app: "Queue", exportedAt: new Date().toISOString(), shows: shows };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        var dateStr = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = "queue-backup-" + dateStr + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        setError("Couldn't create the backup file.");
+      }
+    }
+
+    function triggerImport() {
+      if (fileInputRef.current) fileInputRef.current.click();
+    }
+
+    function handleImportFile(e) {
+      var file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (evt) {
+        try {
+          var parsed = JSON.parse(evt.target.result);
+          var incoming = Array.isArray(parsed) ? parsed : parsed.shows;
+          if (!Array.isArray(incoming)) throw new Error("bad format");
+          var proceed = shows.length === 0 || window.confirm(
+            "This will replace your current list (" + shows.length + " shows) with the " + incoming.length + " shows from this backup. Continue?"
+          );
+          if (!proceed) return;
+          setShows(incoming);
+          setEpisodesCache({});
+          setError(null);
+        } catch (err) {
+          setError("That file doesn't look like a valid Queue backup.");
+        }
+      };
+      reader.onerror = function () { setError("Couldn't read that file."); };
+      reader.readAsText(file);
     }
 
     function refreshAll() {
@@ -318,6 +369,9 @@ window.addEventListener("error", function (e) {
 
     var headerRight = h("div", { style: styles.headerRight },
       newCount > 0 ? h("div", { style: styles.onAirBadge }, h("span", { style: styles.onAirDot }), newCount + " NOW AIRING") : null,
+      h("input", { ref: fileInputRef, type: "file", accept: "application/json", style: { display: "none" }, onChange: handleImportFile }),
+      h("button", { onClick: triggerImport, style: styles.iconButton, title: "Import backup" }, Icons.upload()),
+      h("button", { onClick: exportData, disabled: shows.length === 0, style: styles.iconButton, title: "Export backup" }, Icons.download()),
       h("button", {
         onClick: refreshAll, disabled: refreshing || shows.length === 0, style: styles.iconButton, title: "Check for new episodes"
       }, h("span", { style: { display: "flex", animation: refreshing ? "spin 1s linear infinite" : "none" } }, Icons.refresh())),
