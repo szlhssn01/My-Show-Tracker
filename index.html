@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Signal — Your Channel Guide</title>
+<title>Queue — Track Your Watch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -46,12 +46,12 @@ window.addEventListener("error", function (e) {
   var useEffect = React.useEffect;
 
   var CATEGORIES = [
-    { key: "watching", label: "Watching", num: "01", color: "#4FD1C5" },
-    { key: "havent_watched", label: "Haven't Watched", num: "02", color: "#8B8FA3" },
-    { key: "watch_later", label: "Watch Later", num: "03", color: "#F5A623" },
-    { key: "up_to_date", label: "Up to Date", num: "04", color: "#4FD1C5" },
-    { key: "finished", label: "Finished", num: "05", color: "#6B7280" },
-    { key: "stopped_watching", label: "Stopped Watching", num: "06", color: "#FF4B3E" }
+    { key: "watching", label: "Watching", num: "01", color: "#F2C94C" },
+    { key: "havent_watched", label: "Haven't Watched", num: "02", color: "#4FA8E0" },
+    { key: "watch_later", label: "Watch Later", num: "03", color: "#F2994A" },
+    { key: "up_to_date", label: "Up to Date", num: "04", color: "#27AE60" },
+    { key: "finished", label: "Finished", num: "05", color: "#9B59B6" },
+    { key: "stopped_watching", label: "Stopped Watching", num: "06", color: "#EB5757" }
   ];
 
   var STORAGE_KEY = "signal-tv-tracker-shows-v1";
@@ -71,6 +71,18 @@ window.addEventListener("error", function (e) {
     check: function (size) { return svgIcon([h("polyline", { key: 1, points: "20 6 9 17 4 12" })], size || 13); }
   };
 
+  function deriveAutoStatus(show, watchedIds, eps) {
+    if (!eps || eps.length === 0) return show.status;
+    var today = new Date().toISOString().slice(0, 10);
+    var aired = eps.filter(function (e) { return e.airdate && e.airdate <= today; });
+    if (aired.length === 0) return "havent_watched";
+    var watchedCount = aired.filter(function (e) { return watchedIds.indexOf(e.id) !== -1; }).length;
+    if (watchedCount === 0) return "havent_watched";
+    if (watchedCount < aired.length) return "watching";
+    var ended = show.showStatus === "Ended" || show.showStatus === "Canceled" || show.showStatus === "Cancelled";
+    return ended ? "finished" : "up_to_date";
+  }
+
   function useDebounce(value, delay) {
     var state = useState(value);
     var debounced = state[0], setDebounced = state[1];
@@ -85,7 +97,7 @@ window.addEventListener("error", function (e) {
     if (!d) return null;
     try {
       var date = new Date(d);
-      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
     } catch (e) { return null; }
   }
 
@@ -156,10 +168,12 @@ window.addEventListener("error", function (e) {
         image: s.image ? s.image.medium : null,
         network: (s.network && s.network.name) || (s.webChannel && s.webChannel.name) || "Unknown",
         status: "havent_watched",
+        showStatus: s.status || null,
         lastSeenEpisodeId: null,
         nextAirdate: null,
         lastAirdate: null,
-        hasNew: false
+        hasNew: false,
+        watchedEpisodeIds: []
       };
       setShows(function (prev) { return [newShow].concat(prev); });
       setSearchOpen(false); setQuery(""); setSearchResults([]);
@@ -177,10 +191,17 @@ window.addEventListener("error", function (e) {
               if (sh.tvmazeId !== show.tvmazeId) return sh;
               var newEpAired = prevEp && sh.lastSeenEpisodeId && prevEp.id !== sh.lastSeenEpisodeId;
               var firstCheck = prevEp && sh.lastSeenEpisodeId === null;
+              var isNew = firstCheck ? false : !!newEpAired;
+              var nextStatus = sh.status;
+              if (isNew && sh.status !== "watch_later" && sh.status !== "stopped_watching") {
+                nextStatus = "watching";
+              }
               return Object.assign({}, sh, {
                 lastAirdate: (prevEp && prevEp.airdate) || null,
                 nextAirdate: (nextEp && nextEp.airdate) || null,
-                hasNew: firstCheck ? false : !!newEpAired,
+                showStatus: data.status || sh.showStatus,
+                hasNew: isNew,
+                status: nextStatus,
                 lastSeenEpisodeId: prevEp ? prevEp.id : sh.lastSeenEpisodeId
               });
             });
@@ -222,7 +243,10 @@ window.addEventListener("error", function (e) {
           var watched = s.watchedEpisodeIds || [];
           var isWatched = watched.indexOf(episodeId) !== -1;
           var nextWatched = isWatched ? watched.filter(function (id) { return id !== episodeId; }) : watched.concat([episodeId]);
-          return Object.assign({}, s, { watchedEpisodeIds: nextWatched });
+          var eps = episodesCache[s.tvmazeId];
+          var nextStatus = deriveAutoStatus(s, nextWatched, eps);
+          var clearsNew = nextStatus === "up_to_date" || nextStatus === "finished";
+          return Object.assign({}, s, { watchedEpisodeIds: nextWatched, status: nextStatus, hasNew: clearsNew ? false : s.hasNew });
         });
       });
     }
@@ -239,7 +263,10 @@ window.addEventListener("error", function (e) {
           } else {
             nextWatched = current.filter(function (id) { return episodeIds.indexOf(id) === -1; });
           }
-          return Object.assign({}, s, { watchedEpisodeIds: nextWatched });
+          var eps = episodesCache[s.tvmazeId];
+          var nextStatus = deriveAutoStatus(s, nextWatched, eps);
+          var clearsNew = nextStatus === "up_to_date" || nextStatus === "finished";
+          return Object.assign({}, s, { watchedEpisodeIds: nextWatched, status: nextStatus, hasNew: clearsNew ? false : s.hasNew });
         });
       });
     }
@@ -254,10 +281,7 @@ window.addEventListener("error", function (e) {
 
     function setStatus(showId, status) {
       setShows(function (prev) {
-        return prev.map(function (s) {
-          if (s.id !== showId) return s;
-          return Object.assign({}, s, { status: status, hasNew: status === "up_to_date" ? false : s.hasNew });
-        });
+        return prev.map(function (s) { return s.id === showId ? Object.assign({}, s, { status: status }) : s; });
       });
       setMenuOpenFor(null);
     }
@@ -288,8 +312,8 @@ window.addEventListener("error", function (e) {
         )
       ),
       h("div", null,
-        h("div", { style: styles.logoTitle }, "SIGNAL"),
-        h("div", { style: styles.logoSub }, "your channel guide")
+        h("div", { style: styles.logoTitle }, "QUEUE"),
+        h("div", { style: styles.logoSub }, "Track Your Watch")
       )
     );
 
@@ -333,7 +357,7 @@ window.addEventListener("error", function (e) {
       mainContent = h("div", { style: styles.grid },
         visibleShows.map(function (show) {
           var menu = menuOpenFor === show.id ? h("div", { style: styles.menu },
-            CATEGORIES.map(function (c) {
+            CATEGORIES.filter(function (c) { return c.key === "watch_later" || c.key === "stopped_watching"; }).map(function (c) {
               return h("button", { key: c.key, style: styles.menuItem, onClick: function () { setStatus(show.id, c.key); } },
                 h("span", { style: { color: c.color, fontFamily: "'JetBrains Mono', monospace", fontSize: 11 } }, c.num),
                 c.label,
