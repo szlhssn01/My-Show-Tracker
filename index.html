@@ -28,14 +28,6 @@
     .qh-actions { margin-left: 0; gap: 6px; }
     .qh-airing-now-word { display: none; }
     .qh-airing-badge { padding: 5px 8px; font-size: 10px; }
-    .qh-icon-btn { width: 32px; height: 32px; }
-    .qh-add-btn { padding: 8px 11px; font-size: 12.5px; }
-    .qh-add-btn-label { display: inline; }
-  }
-
-  @media (max-width: 380px) {
-    .qh-add-btn-label { display: none; }
-    .qh-add-btn { padding: 8px; width: 32px; justify-content: center; }
   }
 </style>
 </head>
@@ -512,9 +504,8 @@ window.addEventListener("error", function (e) {
         h("button", {
           onClick: refreshAll, disabled: refreshing || shows.length === 0, className: "qh-icon-btn", style: styles.iconButton, title: "Check for new episodes"
         }, h("span", { style: { display: "flex", animation: refreshing ? "spin 1s linear infinite" : "none" } }, Icons.refresh())),
-        h("button", { onClick: function () { setSearchOpen(true); }, className: "qh-add-btn", style: styles.addButton, title: "Add Show" },
-          Icons.plus(),
-          h("span", { className: "qh-add-btn-label" }, "Add Show")
+        h("button", { onClick: function () { setSearchOpen(true); }, className: "qh-icon-btn qh-add-btn", style: styles.addButton, title: "Add Show", "aria-label": "Add Show" },
+          Icons.plus()
         )
       )
     );
@@ -564,7 +555,7 @@ window.addEventListener("error", function (e) {
           ) : null;
 
           return h("div", { key: show.id, style: styles.card },
-            hasNewTag(show, episodesCache[show.tvmazeId]) ? h("div", { style: styles.newBadge }, h("span", { style: styles.onAirDot }), "New") : null,
+            hasNewTag(show, episodesCache[show.tvmazeId]) ? h("div", { style: styles.newBadge }, "New") : null,
             h("div", { style: styles.cardTop },
               show.image ? h("img", { src: show.image, alt: show.name, style: styles.poster }) : h("div", { style: styles.posterFallback }, Icons.tv(20)),
               h("div", { style: styles.cardInfo },
@@ -740,7 +731,7 @@ window.addEventListener("error", function (e) {
     onAirDot: { width: 6, height: 6, borderRadius: "50%", background: "#FF4B3E", display: "inline-block", animation: "pulse 1s ease-in-out infinite alternate" },
     iconButton: { width: 34, height: 34, borderRadius: 8, border: "1px solid #2A2E3A", background: "#1B1E27", color: "#8B8FA3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
     iconButtonPlain: { background: "none", border: "none", color: "#8B8FA3", display: "flex" },
-    addButton: { display: "flex", alignItems: "center", gap: 6, background: "#EDEAE2", color: "#14161C", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 },
+    addButton: { width: 34, height: 34, borderRadius: 8, border: "none", background: "#EDEAE2", color: "#14161C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
     errorBanner: { margin: "0 24px 12px", background: "rgba(255,75,62,0.1)", border: "1px solid rgba(255,75,62,0.35)", color: "#FF9A90", borderRadius: 8, padding: "10px 14px", fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, position: "relative", zIndex: 1 },
     errorDismiss: { background: "none", border: "none", color: "#FF9A90", display: "flex" },
     dial: { display: "flex", gap: 8, padding: "0 24px 20px", overflowX: "auto", position: "relative", zIndex: 1 },
@@ -750,14 +741,14 @@ window.addEventListener("error", function (e) {
     dialDot: { width: 8, height: 8, borderRadius: "50%", flexShrink: 0 },
     dialLabel: { fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap" },
     dialCount: { fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: "#5A5F73" },
-    dialNewPill: { position: "absolute", top: -8, right: 10, background: "#FF4B3E", color: "#14161C", fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 700, letterSpacing: "0.04em", padding: "2px 7px", borderRadius: 20 },
+    dialNewPill: { position: "absolute", top: 8, right: 8, background: "#FF4B3E", color: "#14161C", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.04em", padding: "3px 8px", borderRadius: 20, lineHeight: 1 },
     main: { padding: "0 24px", position: "relative", zIndex: 1 },
     emptyState: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", color: "#8B8FA3", textAlign: "center", gap: 4 },
     emptyTitle: { fontSize: 15, fontWeight: 600, color: "#EDEAE2", marginTop: 8 },
     emptySub: { fontSize: 13, color: "#8B8FA3" },
     grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 },
     card: { background: "#1B1E27", border: "1px solid #262A35", borderRadius: 12, padding: 14, position: "relative", display: "flex", flexDirection: "column", gap: 10 },
-    newBadge: { position: "absolute", top: -9, right: 12, background: "#FF4B3E", color: "#14161C", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.05em", padding: "3px 8px", borderRadius: 20, display: "flex", alignItems: "center", gap: 5 },
+    newBadge: { position: "absolute", top: -9, right: 12, background: "#FF4B3E", color: "#14161C", fontFamily: "'JetBrains Mono', monospace", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.04em", padding: "3px 8px", borderRadius: 20, lineHeight: 1 },
     cardTop: { display: "flex", gap: 12 },
     poster: { width: 56, height: 78, borderRadius: 6, objectFit: "cover", flexShrink: 0 },
     posterFallback: { width: 56, height: 78, borderRadius: 6, background: "#262A35", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
