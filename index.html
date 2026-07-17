@@ -327,7 +327,7 @@ window.addEventListener("error", function (e) {
       })
       .catch(function (err) {
         console.error("Error updating details for show ID " + show.tvmazeId, err);
-        setError("Couldn't refresh \"" + show.name + "\". Check your connection and try again.");
+        setError("Couldn't refresh \"" + show.name + "\". Try again.");
       });
     }
 
