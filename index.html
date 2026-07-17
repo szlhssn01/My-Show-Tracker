@@ -232,6 +232,9 @@ window.addEventListener("error", function (e) {
         return changed ? next : prev;
       });
     }, [episodesCache, loaded]);
+
+    useEffect(function () {
+      if (!debouncedQuery.trim()) { setSearchResults([]); return; }
       var cancelled = false;
       setSearching(true);
       fetch(TVMAZE + "/search/shows?q=" + encodeURIComponent(debouncedQuery))
