@@ -130,16 +130,36 @@ window.addEventListener("error", function (e) {
   }
 
   function isNewEpisode(show, eps) {
-    if (eps && eps.length) {
-      var cursor = computeEpisodeCursor(eps);
-      if (!cursor.lastAired) return false;
+    // If local manual override says true, honor it first
+    if (show.hasNew) return true;
+    if (!eps || !eps.length) return false;
+
+    var cursor = computeEpisodeCursor(eps);
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var nowTime = Date.now();
+
+    // Condition 1: A new episode has recently aired in the past 10 days that we haven't acknowledged/watched
+    if (cursor.lastAired) {
       var watchedIds = show.watchedEpisodeIds || [];
-      if (watchedIds.indexOf(cursor.lastAired.id) !== -1) return false;
-      if (show.lastSeenEpisodeId === cursor.lastAired.id) return false;
-      var diffDays = (Date.now() - new Date(cursor.lastAired.airdate).getTime()) / 86400000;
-      return diffDays >= 0 && diffDays <= 10;
+      var notWatched = watchedIds.indexOf(cursor.lastAired.id) === -1;
+      var notDismissed = show.lastSeenEpisodeId !== cursor.lastAired.id;
+      var diffDays = (nowTime - new Date(cursor.lastAired.airdate).getTime()) / 86400000;
+      if (notWatched && notDismissed && diffDays >= 0 && diffDays <= 10) {
+        return true;
+      }
     }
-    return !!show.hasNew;
+
+    // Condition 2: There is an active countdown for an episode airing within the next 3 days (or today)
+    if (cursor.nextUp && cursor.nextUp.airdate) {
+      var nextAirTime = new Date(cursor.nextUp.airdate).getTime();
+      var daysUntil = (nextAirTime - nowTime) / 86400000;
+      // Triggers badge if the next episode is arriving inside a 3 day window
+      if (daysUntil <= 3) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   function App() {
