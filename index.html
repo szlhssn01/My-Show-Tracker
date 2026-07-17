@@ -23,7 +23,7 @@
   .qh-airing-now-word { }
 
   @media (max-width: 640px) {
-    .qh-header { padding: 16px 16px 14px; gap: 10px; }
+    .qh-header { padding: 16px 24px 14px; gap: 10px; }
     .qh-right { width: 100%; justify-content: space-between; gap: 8px; }
     .qh-actions { margin-left: 0; gap: 6px; }
     .qh-airing-now-word { display: none; }
@@ -505,7 +505,7 @@ window.addEventListener("error", function (e) {
           onClick: refreshAll, disabled: refreshing || shows.length === 0, className: "qh-icon-btn", style: styles.iconButton, title: "Check for new episodes"
         }, h("span", { style: { display: "flex", animation: refreshing ? "spin 1s linear infinite" : "none" } }, Icons.refresh())),
         h("button", { onClick: function () { setSearchOpen(true); }, className: "qh-icon-btn qh-add-btn", style: styles.addButton, title: "Add Show", "aria-label": "Add Show" },
-          Icons.plus()
+          Icons.plus(18)
         )
       )
     );
