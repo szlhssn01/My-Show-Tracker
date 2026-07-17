@@ -118,6 +118,24 @@ window.addEventListener("error", function (e) {
     return next;
   }
 
+  // Given a show's full episode list, work out the latest episode that has
+  // actually aired and the next one still to come, relative to today. This is
+  // recalculated every time it's used, so it never goes stale the way a
+  // one-time API snapshot would as days pass.
+  function computeEpisodeCursor(eps) {
+    var today = new Date().toISOString().slice(0, 10);
+    var lastAired = null, nextUp = null;
+    (eps || []).forEach(function (e) {
+      if (!e.airdate) return;
+      if (e.airdate <= today) {
+        if (!lastAired || e.airdate > lastAired.airdate) lastAired = e;
+      } else {
+        if (!nextUp || e.airdate < nextUp.airdate) nextUp = e;
+      }
+    });
+    return { lastAired: lastAired, nextUp: nextUp };
+  }
+
   function App() {
     var showsState = useState([]);
     var shows = showsState[0], setShows = showsState[1];
@@ -175,7 +193,45 @@ window.addEventListener("error", function (e) {
     }, [shows, episodesCache, loaded]);
 
     useEffect(function () {
-      if (!debouncedQuery.trim()) { setSearchResults([]); return; }
+      if (!loaded) return;
+      if (shows.length === 0) return;
+      refreshAll();
+      // Only run this once, right after shows finish loading from storage.
+      // eslint-disable-next-line
+    }, [loaded]);
+
+    // Whenever we have a full episode list cached for a show (from opening its
+    // Episodes panel), use it as the source of truth for "is there a new
+    // episode" and "what's next", instead of relying only on the
+    // previous/next-episode snapshot from refreshOne, which only updates when
+    // a refresh happens to run at the right moment.
+    useEffect(function () {
+      if (!loaded) return;
+      setShows(function (prev) {
+        var changed = false;
+        var next = prev.map(function (s) {
+          var eps = episodesCache[s.tvmazeId];
+          if (!eps || eps.length === 0) return s;
+          var cursor = computeEpisodeCursor(eps);
+          var lastAiredId = cursor.lastAired ? cursor.lastAired.id : null;
+          if (lastAiredId === null) return s;
+          if (s.lastSeenEpisodeId === null) {
+            changed = true;
+            return Object.assign({}, s, { lastSeenEpisodeId: lastAiredId });
+          }
+          if (lastAiredId !== s.lastSeenEpisodeId) {
+            changed = true;
+            var nextStatus = s.status;
+            if (s.status !== "watch_later" && s.status !== "stopped_watching" && s.status !== "havent_watched") {
+              nextStatus = "watching";
+            }
+            return Object.assign({}, s, { lastSeenEpisodeId: lastAiredId, hasNew: true, status: nextStatus });
+          }
+          return s;
+        });
+        return changed ? next : prev;
+      });
+    }, [episodesCache, loaded]);
       var cancelled = false;
       setSearching(true);
       fetch(TVMAZE + "/search/shows?q=" + encodeURIComponent(debouncedQuery))
@@ -209,7 +265,7 @@ window.addEventListener("error", function (e) {
     }
 
     function refreshOne(show) {
-      fetch(TVMAZE + "/shows/" + show.tvmazeId + "?embed[]=previousepisode&embed[]=nextepisode")
+      return fetch(TVMAZE + "/shows/" + show.tvmazeId + "?embed[]=previousepisode&embed[]=nextepisode")
         .then(function (res) { return res.json(); })
         .then(function (data) {
           var prevEp = data._embedded && data._embedded.previousepisode;
@@ -456,8 +512,16 @@ window.addEventListener("error", function (e) {
               h("div", { style: styles.cardInfo },
                 h("div", { style: styles.showName }, show.name),
                 h("div", { style: styles.showNetwork }, show.network),
-                show.nextAirdate ? h("div", { style: styles.airdate }, "Next: " + fmtDate(show.nextAirdate)) : null,
-                (!show.nextAirdate && show.lastAirdate) ? h("div", { style: styles.airdateMuted }, "Last aired " + fmtDate(show.lastAirdate)) : null,
+                (function () {
+                  var eps = episodesCache[show.tvmazeId];
+                  var cursor = (eps && eps.length) ? computeEpisodeCursor(eps) : null;
+                  var displayNext = cursor ? (cursor.nextUp ? cursor.nextUp.airdate : null) : show.nextAirdate;
+                  var displayLast = cursor ? (cursor.lastAired ? cursor.lastAired.airdate : null) : show.lastAirdate;
+                  return h(React.Fragment, null,
+                    displayNext ? h("div", { style: styles.airdate }, "Next: " + fmtDate(displayNext)) : null,
+                    (!displayNext && displayLast) ? h("div", { style: styles.airdateMuted }, "Last aired " + fmtDate(displayLast)) : null
+                  );
+                })(),
                 (function () {
                   var eps = episodesCache[show.tvmazeId];
                   if (!eps) return null;
